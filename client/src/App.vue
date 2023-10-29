@@ -31,26 +31,7 @@ export default class App extends Vue {}
   }
 
 .container{
-  .input-bd{
-    line-height: 30px;
-    margin: 10px;
-    font-size: 0;
-    .input-name{
-      display: inline-block;
-      min-width: 10vw;
-      font-size: 14px;
-      vertical-align: middle;
-    }
-    .input-text{
-      display: inline-block;
-      font-size: 14px;
-      vertical-align: middle;
-      input{
-        min-height: 30px;
-        min-width: 40vw;
-      }
-    }
-  }
+  height: 100vh;
   .btn {
     margin-top: 15px;
     span{

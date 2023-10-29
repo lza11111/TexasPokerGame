@@ -77,8 +77,7 @@ class GameController extends BaseSocketController {
         roomInfo.game = null;
         roomInfo.game = new PokerGame({
           users: sitDownPlayer,
-          isShort: roomInfo.config.isShort,
-          smallBlind: roomInfo.config.smallBlind,
+          settings: roomInfo.config,
           actionRoundComplete: async () => {
             let slidePots: number [] = [];
             if (roomInfo.game) {

@@ -286,5 +286,35 @@
         vertical-align: middle;
       }
     }
+
+    .input-bd{
+        border: 1px solid #bababa;
+        border-radius: 20px;
+        width: 250px;
+        margin: 30px auto;
+        text-align: left;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        .input-name{
+          flex: 0;
+          display: inline-block;
+          min-width: 30px;
+          font-size: 14px;
+          vertical-align: middle;
+          text-align: center;
+          font-size: 18px;
+          color: #bababa;
+        }
+        .input-text {
+          flex: 1;
+        }
+        input{
+          vertical-align: middle;
+          width: 100%;
+          height: 50%;
+          background-color: transparent;
+        }
+      }
   }
 </style>

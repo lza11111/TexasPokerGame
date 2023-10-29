@@ -12,11 +12,16 @@ import Timeout = NodeJS.Timeout;
  */
 interface IPokerGame {
   users: IPlayer[];
-  smallBlind: number;
-  isShort: boolean;
+  settings: IPokerGameSettings;
   actionRoundComplete: () => void;
   gameOverCallBack: () => void;
   autoActionCallBack: (actionType: string, userId: string) => void;
+}
+
+interface IPokerGameSettings {
+  smallBlind: number;
+  isShort: boolean;
+  actionTimeLimit?: number;
 }
 
 /**
@@ -45,13 +50,13 @@ export enum EGameStatus {
  * Action time
  * @type {number}
  */
-const ACTION_TIME = 30 * 1000;
+const ACTION_TIME: number = 30 * 1000;
 
 /**
  * Delay add time
  * @type {number}
  */
-const DELAY_ADD_TIME = 60 * 1000;
+const DELAY_ADD_TIME: number = 60 * 1000;
 
 /**
  * Class representing a poker game
@@ -63,9 +68,7 @@ export class PokerGame {
   private actionTimeDelayCount: number = 0;
   private actionTimeOut: Timeout;
   private currActionAllinPlayer: Player[] = [];
-  // It's a short poker game
-  private readonly isShort: boolean;
-  private readonly smallBlind: number;
+  private readonly settings: IPokerGameSettings;
   private readonly actionRoundComplete: () => void;
   private readonly gameOverCallBack: () => void;
   private readonly autoActionCallBack: (actionType: string, userId: string) => void;
@@ -86,13 +89,12 @@ export class PokerGame {
   public gameOverType: EGameOverType;
 
   constructor(config: IPokerGame) {
-    this.smallBlind = config.smallBlind;
+    this.settings = config.settings;
     this.actionRoundComplete = config.actionRoundComplete;
     this.gameOverCallBack = config.gameOverCallBack;
     this.autoActionCallBack = config.autoActionCallBack;
-    console.log(config.isShort, 'poker--------------');
-    this.isShort = config.isShort;
-    this.poker = new Poker(this.isShort);
+    console.log(this.settings.isShort, 'poker--------------');
+    this.poker = new Poker(this.settings.isShort);
     if (config.users.length < 2) {
       throw 'player Inadequate';
     }
@@ -124,10 +126,10 @@ export class PokerGame {
       // big blind
       const BBPlayerNode: ILinkNode<Player> = SBPlayerNode.next;
       this.BBPlayer = BBPlayerNode.node;
-      this.SBPlayer.action(`sb:${this.smallBlind}`);
-      this.BBPlayer.action(`bb:${this.smallBlind * 2}`);
-      this.prevSize = this.smallBlind * 2;
-      this.pot = this.smallBlind * 3;
+      this.SBPlayer.action(`sb:${this.settings.smallBlind}`);
+      this.BBPlayer.action(`bb:${this.settings.smallBlind * 2}`);
+      this.prevSize = this.settings.smallBlind * 2;
+      this.pot = this.settings.smallBlind * 3;
       // todo straddle
     } else {
       throw 'player Inadequate';
@@ -184,7 +186,7 @@ export class PokerGame {
    * @param {IPlayer[]} users
    * @returns {Link<Player>}
    */
-  setPlayer(users: IPlayer[]) {
+  setPlayer(users: IPlayer[]): Link<Player> {
     console.log('init player ======================================================', users);
     users.forEach((u, position) => {
       const player = new Player({
@@ -202,7 +204,7 @@ export class PokerGame {
    * @param {Player[]} excludePlayers - exclude player
    * @returns {any[]}
    */
-  getPlayers(type= 'all', excludePlayers?: Player[]) {
+  getPlayers(type: string= 'all', excludePlayers?: Player[]): any[] {
     let players = [];
     let nextPlayer: ILinkNode<Player> = this.playerLink.link;
     let i = 0;
@@ -228,7 +230,7 @@ export class PokerGame {
     // test
     // this.commonCard = [ 'j4', 'k4', 'l4', 'm4', 'i4', ];
     this.allPlayer.map(p => {
-      p.pokerStyle = new PokerStyle([ ...p.getHandCard(), ...this.commonCard ], this.isShort).getPokerWeight();
+      p.pokerStyle = new PokerStyle([ ...p.getHandCard(), ...this.commonCard ], this.settings.isShort).getPokerWeight();
       return p;
     });
   }
@@ -237,7 +239,7 @@ export class PokerGame {
    * Counting allin player slide pot
    * @returns {number}
    */
-  getLeftoverPot() {
+  getLeftoverPot(): number {
     if (this.winner.length === 0) {
       return this.pot;
     }
@@ -249,7 +251,7 @@ export class PokerGame {
    * @param {Player[]} lastPlayers
    * @returns {Player[]}
    */
-  getMaxPlayers(lastPlayers: Player[]) {
+  getMaxPlayers(lastPlayers: Player[]): Player[] {
     const _maxPlayers: Player[] = [];
     const maxPlayer = lastPlayers.reduce((acc, cur) => {
       return this.compareCard(acc, cur) === 1 ? acc : cur;
@@ -268,7 +270,7 @@ export class PokerGame {
    * if small blind is already fold, then next in the game player
    * @returns {ILinkNode<Player>}
    */
-  getFirstActionPlayer() {
+  getFirstActionPlayer(): ILinkNode<Player> {
     const player = this.allPlayer.filter(p => p.counter > 0
       && p.position !== 0 && p.actionCommand !== 'fold')[0];
     console.log('getFirstActionPlayer-------player', player);
@@ -336,21 +338,23 @@ export class PokerGame {
    * Start next action round
    */
   startActionRound(time= ACTION_TIME) {
-    this.actionTimeOut = setTimeout(async () => {
-      console.log('come in delay round --------2', this.actionTimeDelayCount);
-      // delay action time
-      if (this.actionTimeDelayCount > 0) {
+    if(this.settings.actionTimeLimit && this.settings.actionTimeLimit > 0){
+      this.actionTimeOut = setTimeout(async () => {
         console.log('come in delay round --------2', this.actionTimeDelayCount);
-        this.actionTimeDelayCount --;
-        clearTimeout(this.actionTimeOut);
-        this.startActionRound(DELAY_ADD_TIME);
-        return ;
-      }
-      const userId = this.currPlayer.node.userId || '';
-      console.log('userId start', userId);
-      this.action('fold');
-      this.autoActionCallBack('fold', userId);
-    }, time);
+        // delay action time
+        if (this.actionTimeDelayCount > 0) {
+          console.log('come in delay round --------2', this.actionTimeDelayCount);
+          this.actionTimeDelayCount --;
+          clearTimeout(this.actionTimeOut);
+          this.startActionRound(DELAY_ADD_TIME);
+          return ;
+        }
+        const userId = this.currPlayer.node.userId || '';
+        console.log('userId start', userId);
+        this.action('fold');
+        this.autoActionCallBack('fold', userId);
+      }, time);
+    }
   }
 
   /**
@@ -385,11 +389,11 @@ export class PokerGame {
         if (!(this.prevSize <= 0 ||
           ((this.currPlayer.node.type === EPlayerType.BIG_BLIND
             || this.playerSize === 2 && this.currPlayer.node.type === EPlayerType.DEALER)
-            && this.prevSize === this.smallBlind * 2))) {
+            && this.prevSize === this.settings.smallBlind * 2))) {
           throw 'incorrect action: check';
         }
         console.log(this.currPlayer.node.type === EPlayerType.BIG_BLIND
-          && this.prevSize === this.smallBlind * 2, 'big blind', this.currPlayer);
+          && this.prevSize === this.settings.smallBlind * 2, 'big blind', this.currPlayer);
         size = -1;
       }
       if (command === ECommand.RAISE) {
@@ -406,7 +410,7 @@ export class PokerGame {
         const nextPlayer = this.currPlayer.next.node;
         console.log(command, (nextPlayer.actionSize === this.prevSize
           && (nextPlayer.actionSize === this.currPlayer.node.actionSize || command === ECommand.FOLD)
-          && this.prevSize !== this.smallBlind * 2 && this.prevSize !== 0), 'tst', size, nextPlayer.actionSize, this.prevSize);
+          && this.prevSize !== this.settings.smallBlind * 2 && this.prevSize !== 0), 'tst', size, nextPlayer.actionSize, this.prevSize);
         // all check actionSize === -1
         // all player allin
         // only 2 player, curr player fold, next player already action
@@ -453,17 +457,17 @@ export class PokerGame {
         || (command !== ECommand.ALL_IN && this.currPlayer.node.actionSize >= this.prevSize))) {
       return true;
     }
-    if (this.commonCard.length !== 0 && nextPlayer.actionSize === this.smallBlind * 2
+    if (this.commonCard.length !== 0 && nextPlayer.actionSize === this.settings.smallBlind * 2
       && nextPlayer.actionSize === size && size === this.prevSize) {
       return true;
     }
     if (nextPlayer.actionSize === this.prevSize
       && (this.prevSize === this.currPlayer.node.actionSize || command === ECommand.FOLD)
-      && this.prevSize !== this.smallBlind * 2 && this.prevSize !== 0) {
+      && this.prevSize !== this.settings.smallBlind * 2 && this.prevSize !== 0) {
       return true;
     }
     if (this.commonCard.length === 0
-      && (nextPlayer.actionSize === this.smallBlind * 2 && this.prevSize === nextPlayer.actionSize)
+      && (nextPlayer.actionSize === this.settings.smallBlind * 2 && this.prevSize === nextPlayer.actionSize)
       && (this.currPlayer.node.type === EPlayerType.BIG_BLIND
         || (this.allPlayer.length === 2 && this.currPlayer.node.type === EPlayerType.DEALER))
       && (command === ECommand.CHECK || command === ECommand.FOLD)) {
@@ -561,7 +565,7 @@ export class PokerGame {
    * @param {Player} targetPlayer - second player
    * @returns {number} - target player, bigger: -1, equal: 0, less than: 1
    */
-  compareCard(player: Player, targetPlayer: Player) {
+  compareCard(player: Player, targetPlayer: Player): number {
     const firstWeight = player.pokerStyle;
     const lastWeight = targetPlayer.pokerStyle;
     let flag = -1;

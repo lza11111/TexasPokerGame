@@ -15,7 +15,7 @@ export interface ISit {
 export interface IRoomConfig {
   isShort: boolean;
   smallBlind: number;
-  time?: number;
+  actionTimeLimit?: number;
 }
 
 export interface IRoomInfo {

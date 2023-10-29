@@ -57,11 +57,13 @@
     background: radial-gradient(#00bf86, #006a55);
     background-size: 100% 100%;
     width: 100vw;
-    height: 100vh;
-    padding: 50vw 0;
+    // height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
     box-sizing: border-box;
     .login-body{
-      width: 85vw;
+      max-width: 500px;
       margin: auto;
       border-radius: 4px;
       box-sizing: border-box;
@@ -71,16 +73,29 @@
       .input-bd{
         border: 1px solid #bababa;
         border-radius: 20px;
-        width: 60vw;
+        width: 250px;
         margin: 30px auto;
         text-align: left;
+        height: 40px;
+        display: flex;
+        align-items: center;
         .input-name{
+          flex: 0;
+          display: inline-block;
+          min-width: 30px;
+          font-size: 14px;
+          vertical-align: middle;
           text-align: center;
           font-size: 18px;
           color: #bababa;
         }
+        .input-text {
+          flex: 1;
+        }
         input{
-          height: 40px;
+          vertical-align: middle;
+          width: 100%;
+          height: 50%;
           background-color: transparent;
         }
       }
